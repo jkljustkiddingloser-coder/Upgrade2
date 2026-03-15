@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Upgrade</title>
+<title>Upgrade - Level Game</title>
 <style>
 body{
   font-family: Arial;
@@ -11,12 +11,10 @@ body{
   margin:0;
   padding:0;
 }
-
 header{
   background:#cc0000; /* red menu */
-  padding:10px;
+  padding:20px;
 }
-
 button{
   padding:10px 20px;
   margin:5px;
@@ -27,9 +25,7 @@ button{
   border-radius:5px;
   font-size:16px;
 }
-
 button:hover{ background:#ff0000; }
-
 canvas{
   background:#333;
   display:block;
@@ -40,7 +36,110 @@ canvas{
 </head>
 <body>
 
-<header>
-  <h1>🎮 Upgrade</h1>
-  <p>Choose your game and level</p>
-  <button onclick="startGame('car
+<header id="menu">
+  <h1>🎮 Upgrade: Level Game</h1>
+  <p>Choose a level to start</p>
+  <button onclick="startLevel(1)">Level 1</button>
+  <button onclick="startLevel(2)">Level 2</button>
+  <button onclick="startLevel(3)">Level 3</button>
+</header>
+
+<canvas id="gameCanvas" width="600" height="400" style="display:none;"></canvas>
+<p id="scoreDisplay"></p>
+
+<script>
+// Game variables
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let player = {x:50, y:350, width:30, height:30, vy:0};
+let gravity = 0.5;
+let obstacles = [];
+let score = 0;
+let level = 1;
+let gameRunning = false;
+
+// Key controls
+let keys = {};
+document.addEventListener("keydown", e=>keys[e.key]=true);
+document.addEventListener("keyup", e=>keys[e.key]=false);
+
+// Level maps (array of obstacles)
+const levels = {
+  1: [ {x:200, y:350, width:50, height:50}, {x:400, y:300, width:50, height:100}, {x:550, y:350, width:50, height:50} ],
+  2: [ {x:150, y:350, width:50, height:50}, {x:300, y:250, width:50, height:150}, {x:500, y:350, width:50, height:50} ],
+  3: [ {x:100, y:350, width:50, height:50}, {x:250, y:300, width:50, height:100}, {x:400, y:250, width:50, height:150}, {x:550, y:350, width:50, height:50} ]
+};
+
+// Start a level
+function startLevel(lvl){
+  level = lvl;
+  obstacles = JSON.parse(JSON.stringify(levels[level])); // deep copy
+  player.y = 350; player.vy=0;
+  score = 0;
+  document.getElementById("menu").style.display="none";
+  canvas.style.display="block";
+  gameRunning = true;
+  gameLoop();
+}
+
+// Game update
+function update(){
+  // Jump
+  if((keys[" "] || keys["ArrowUp"]) && player.y >= 350) player.vy = -10;
+
+  // Apply gravity
+  player.vy += gravity;
+  player.y += player.vy;
+  if(player.y>350) player.y = 350;
+
+  // Move obstacles to the left to simulate scrolling
+  obstacles.forEach(o=> o.x -= 3);
+
+  // Check collision
+  obstacles.forEach(o=>{
+    if(player.x < o.x+o.width && player.x+player.width>o.x &&
+       player.y < o.y+o.height && player.y+player.height>o.y){
+      alert("Game Over! Score: "+score);
+      gameRunning = false;
+      canvas.style.display="none";
+      document.getElementById("menu").style.display="block";
+    }
+  });
+
+  // Remove offscreen obstacles
+  obstacles = obstacles.filter(o=> o.x + o.width > 0);
+
+  score++;
+  document.getElementById("scoreDisplay").innerText="Score: "+score;
+
+  // Win condition
+  if(obstacles.length===0){
+    alert("Level Complete! Score: "+score);
+    gameRunning=false;
+    canvas.style.display="none";
+    document.getElementById("menu").style.display="block";
+  }
+}
+
+// Game draw
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Player
+  ctx.fillStyle="lime";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  // Obstacles
+  ctx.fillStyle="red";
+  obstacles.forEach(o=> ctx.fillRect(o.x, o.y, o.width, o.height));
+}
+
+// Main loop
+function gameLoop(){
+  if(!gameRunning) return;
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
